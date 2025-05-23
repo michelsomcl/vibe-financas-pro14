@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,11 @@ export default function Transactions() {
     categories, 
     clientsSuppliers, 
     loading, 
-    deleteTransaction 
+    deleteTransaction,
+    updatePayableAccount,
+    updateReceivableAccount,
+    payableAccounts,
+    receivableAccounts
   } = useFinance();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -123,7 +126,44 @@ export default function Transactions() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este lançamento?')) {
-      await deleteTransaction(id);
+      try {
+        // Find the transaction before deleting it
+        const transaction = transactions.find(t => t.id === id);
+        
+        // Before deletion, check if the transaction is linked to a payable or receivable
+        if (transaction?.sourceType === 'payable' && transaction?.sourceId) {
+          // Find the corresponding payable account
+          const payable = payableAccounts.find(p => p.id === transaction.sourceId);
+          
+          if (payable && payable.isPaid) {
+            // Mark the payable account as unpaid
+            await updatePayableAccount(payable.id, {
+              isPaid: false,
+              paidDate: undefined
+            });
+            
+            console.log(`Marked payable account ${payable.id} as unpaid`);
+          }
+        } else if (transaction?.sourceType === 'receivable' && transaction?.sourceId) {
+          // Find the corresponding receivable account
+          const receivable = receivableAccounts.find(r => r.id === transaction.sourceId);
+          
+          if (receivable && receivable.isReceived) {
+            // Mark the receivable account as not received
+            await updateReceivableAccount(receivable.id, {
+              isReceived: false,
+              receivedDate: undefined
+            });
+            
+            console.log(`Marked receivable account ${receivable.id} as not received`);
+          }
+        }
+        
+        // Now delete the transaction
+        await deleteTransaction(id);
+      } catch (error) {
+        console.error('Error when deleting transaction:', error);
+      }
     }
   };
 

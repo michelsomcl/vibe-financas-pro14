@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import { ptBR } from "date-fns/locale";
 import PayableForm from "@/components/payables/PayableForm";
 import { PayableAccount } from "@/types";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Payables() {
   const { 
@@ -80,6 +80,25 @@ export default function Payables() {
 
   const handleMarkAsPaid = async (payable: PayableAccount) => {
     try {
+      // First check if a transaction for this payable already exists
+      const existingTransaction = transactions.find(
+        t => t.sourceType === 'payable' && t.sourceId === payable.id
+      );
+      
+      if (existingTransaction) {
+        // If a transaction already exists, just update the payable status
+        await updatePayableAccount(payable.id, {
+          isPaid: true,
+          paidDate: new Date()
+        });
+        
+        toast({
+          title: "Status atualizado",
+          description: "A conta foi marcada como paga."
+        });
+        return; // Return early to prevent duplicate transaction creation
+      }
+      
       // 1. Atualiza a conta para paga
       const paidDate = new Date();
       await updatePayableAccount(payable.id, {
