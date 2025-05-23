@@ -9,7 +9,8 @@ export function useReceivableActions() {
     deleteReceivableAccount,
     addTransaction,
     deleteTransaction,
-    transactions
+    transactions,
+    receivableAccounts
   } = useFinance();
   const { toast } = useToast();
 
@@ -109,7 +110,7 @@ export function useReceivableActions() {
     if (confirm('Tem certeza que deseja excluir esta conta a receber?')) {
       try {
         // Check if this receivable has an associated transaction (is received)
-        const receivable = await getReceivableById(id);
+        const receivable = receivableAccounts.find(r => r.id === id);
         
         if (receivable?.isReceived) {
           // Find and delete the related transaction first
@@ -138,12 +139,6 @@ export function useReceivableActions() {
         });
       }
     }
-  };
-
-  // Helper function to get a receivable by ID
-  const getReceivableById = (id: string) => {
-    const { receivableAccounts } = useFinance();
-    return receivableAccounts.find(r => r.id === id);
   };
 
   return {
