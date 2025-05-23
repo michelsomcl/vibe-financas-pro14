@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,36 @@ export default function Payables() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta conta a pagar?')) {
-      await deletePayableAccount(id);
+      try {
+        // Check if this payable has an associated transaction (is paid)
+        const payable = payableAccounts.find(p => p.id === id);
+        
+        if (payable?.isPaid) {
+          // Find and delete the related transaction first
+          const relatedTransaction = transactions.find(
+            t => t.sourceType === 'payable' && t.sourceId === id
+          );
+          
+          if (relatedTransaction) {
+            await deleteTransaction(relatedTransaction.id);
+          }
+        }
+        
+        // Then delete the payable
+        await deletePayableAccount(id);
+        
+        toast({
+          title: "Conta excluída",
+          description: "A conta a pagar foi excluída com sucesso."
+        });
+      } catch (error) {
+        console.error('Erro ao excluir conta:', error);
+        toast({
+          title: "Erro",
+          description: "Ocorreu um erro ao excluir a conta.",
+          variant: "destructive"
+        });
+      }
     }
   };
 

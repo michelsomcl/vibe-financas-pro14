@@ -107,8 +107,43 @@ export function useReceivableActions() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta conta a receber?')) {
-      await deleteReceivableAccount(id);
+      try {
+        // Check if this receivable has an associated transaction (is received)
+        const receivable = await getReceivableById(id);
+        
+        if (receivable?.isReceived) {
+          // Find and delete the related transaction first
+          const relatedTransaction = transactions.find(
+            t => t.sourceType === 'receivable' && t.sourceId === id
+          );
+          
+          if (relatedTransaction) {
+            await deleteTransaction(relatedTransaction.id);
+          }
+        }
+        
+        // Then delete the receivable
+        await deleteReceivableAccount(id);
+        
+        toast({
+          title: "Conta excluída",
+          description: "A conta a receber foi excluída com sucesso."
+        });
+      } catch (error) {
+        console.error('Erro ao excluir conta:', error);
+        toast({
+          title: "Erro",
+          description: "Ocorreu um erro ao excluir a conta.",
+          variant: "destructive"
+        });
+      }
     }
+  };
+
+  // Helper function to get a receivable by ID
+  const getReceivableById = (id: string) => {
+    const { receivableAccounts } = useFinance();
+    return receivableAccounts.find(r => r.id === id);
   };
 
   return {
